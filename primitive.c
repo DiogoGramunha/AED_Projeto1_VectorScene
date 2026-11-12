@@ -274,19 +274,49 @@ void primitive_destroy(Primitive* p) {
 // ============================================================================
 
 bool polygon_add_vertex(Primitive* p, Point pt) {
-  /* TODO: Student Implementation
-   */
-  (void)p;
-  (void)pt;
-  return false;
+  if (p == NULL || p->type != PRIM_POLYGON)  {
+    return false;
+  }
+
+  if (p->geom.polygon.num_vertices == p->geom.polygon.capacity) {
+    size_t new_capacity;
+
+    if (p->geom.polygon.capacity == 0) {
+      new_capacity = 4;
+    } else {
+      new_capacity = p->geom.polygon.capacity * 2;
+    }
+
+    Point* temp = realloc(p->geom.polygon.vertices, new_capacity * sizeof(Point));
+    
+    if (temp == NULL) {
+      return false;
+    }
+    p->geom.polygon.vertices = temp;
+    p->geom.polygon.capacity = new_capacity;
+  }
+
+  p->geom.polygon.vertices[p->geom.polygon.num_vertices] = pt;
+  p->geom.polygon.num_vertices += 1;
+
+  p->is_aabb_dirty = true;
+
+  return true;
 }
 
 bool polygon_remove_vertex(Primitive* p, size_t index) {
-  /* TODO: Student Implementation
-   */
-  (void)p;
-  (void)index;
-  return false;
+  if (p == NULL || p->type != PRIM_POLYGON || index >= p->geom.polygon.num_vertices) {
+    return false;
+  }
+
+  for (size_t i = index; i < p->geom.polygon.num_vertices - 1; i++) {
+    p->geom.polygon.vertices[i] = p->geom.polygon.vertices[i + 1];
+  }  
+
+  p->geom.polygon.num_vertices -= 1;
+  p->is_aabb_dirty = true;
+
+  return true;
 }
 
 // ============================================================================

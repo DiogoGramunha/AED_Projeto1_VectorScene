@@ -201,60 +201,36 @@ Primitive* primitive_create_circle(int id, Point center, double radius,
 Primitive* primitive_create_rectangle(int id, Point top_left, double width,
                                       double height, Color color, double alpha,
                                       int z_index) {
-  /* TODO: Student Implementation 
-  (void)id;
-  (void)top_left;
-  (void)width;
-  (void)height;
-  (void)color;
-  (void)alpha;
-  (void)z_index;
-  return NULL;
-}
-*/
-
-//dimensoes estritamente positivas
-  if (width <= 0.0 || height <= 0.0 || alpha_is_valid(alpha) == NULL) {
+  
+  if (width <= 0.0 || height <= 0.0 || alpha < 0.0 || alpha > 1.0) {
     return NULL;
   }
 
-//aloca estrutra base e preenche id, cor, alpha etc.
   Primitive* p = primitive_allocate_common(id, PRIM_RECTANGLE, color, alpha, z_index);
+
   if (p == NULL) {
     return NULL;
   }
 
-  
   p->geom.rectangle.top_left = top_left;
-  p->geom.rectangle.width = width;
   p->geom.rectangle.height = height;
+  p->geom.rectangle.width = width;
 
-
-  // Automatically calculate initial AABB
   primitive_update_aabb(p);
 
   return p;
 }
 
+
 Primitive* primitive_create_segment(int id, Point p1, Point p2, Color color,
                                     double alpha, int z_index) {
-  /* TODO: Student Implementation
-  
-  (void)id;
-  (void)p1;
-  (void)p2;
-  (void)color;
-  (void)alpha;
-  (void)z_index;
-  return NULL;
-}
-*/
 
-  if (alpha_is_valid(alpha) == NULL) {
+  if (alpha < 0.0 || alpha > 1.0) {
     return NULL;
   }
 
   Primitive* p = primitive_allocate_common(id, PRIM_SEGMENT, color, alpha, z_index);
+
   if (p == NULL) {
     return NULL;
   }
@@ -262,7 +238,6 @@ Primitive* primitive_create_segment(int id, Point p1, Point p2, Color color,
   p->geom.segment.p1 = p1;
   p->geom.segment.p2 = p2;
 
-  // Automatically calculate initial AABB
   primitive_update_aabb(p);
 
   return p;
@@ -270,37 +245,23 @@ Primitive* primitive_create_segment(int id, Point p1, Point p2, Color color,
 
 Primitive* primitive_create_polygon(int id, Color color, double alpha,
                                     int z_index) {
-  /* TODO: Student Implementation
-  (void)id;
-  (void)color;
-  (void)alpha;
-  (void)z_index;
-  return NULL;
-}
-*/
-  if (alpha_is_valid(alpha) == NULL) {
+
+  if (alpha < 0.0 || alpha > 1.0) {
     return NULL;
   }
 
   Primitive* p = primitive_allocate_common(id, PRIM_POLYGON, color, alpha, z_index);
+
   if (p == NULL) {
     return NULL;
   }
 
-  p->geom.polygon.vertices = NULL;
-  p->geom.polygon.num_vertices = 0;
-
-  // Automatically calculate initial AABB
-  primitive_update_aabb(p);
+  // Update AABB not required, polygon without vertices does not have area to calculate.
 
   return p;
 }
 
 void primitive_destroy(Primitive* p) {
-  /* TODO: Student Implementation
-  (void)p;
-}
-  */
 
   if (p == NULL) {
     return;
@@ -308,8 +269,6 @@ void primitive_destroy(Primitive* p) {
 
   if (p->type == PRIM_POLYGON) {
     free(p->geom.polygon.vertices);
-    p->geom.polygon.vertices = NULL;
-    p->geom.polygon.num_vertices = 0;
   }
 
   free(p);
@@ -320,19 +279,49 @@ void primitive_destroy(Primitive* p) {
 // ============================================================================
 
 bool polygon_add_vertex(Primitive* p, Point pt) {
-  /* TODO: Student Implementation
-   */
-  (void)p;
-  (void)pt;
-  return false;
+  if (p == NULL || p->type != PRIM_POLYGON)  {
+    return false;
+  }
+
+  if (p->geom.polygon.num_vertices == p->geom.polygon.capacity) {
+    size_t new_capacity;
+
+    if (p->geom.polygon.capacity == 0) {
+      new_capacity = 4;
+    } else {
+      new_capacity = p->geom.polygon.capacity * 2;
+    }
+
+    Point* temp = realloc(p->geom.polygon.vertices, new_capacity * sizeof(Point));
+    
+    if (temp == NULL) {
+      return false;
+    }
+    p->geom.polygon.vertices = temp;
+    p->geom.polygon.capacity = new_capacity;
+  }
+
+  p->geom.polygon.vertices[p->geom.polygon.num_vertices] = pt;
+  p->geom.polygon.num_vertices += 1;
+
+  p->is_aabb_dirty = true;
+
+  return true;
 }
 
 bool polygon_remove_vertex(Primitive* p, size_t index) {
-  /* TODO: Student Implementation
-   */
-  (void)p;
-  (void)index;
-  return false;
+  if (p == NULL || p->type != PRIM_POLYGON || index >= p->geom.polygon.num_vertices) {
+    return false;
+  }
+
+  for (size_t i = index; i < p->geom.polygon.num_vertices - 1; i++) {
+    p->geom.polygon.vertices[i] = p->geom.polygon.vertices[i + 1];
+  }  
+
+  p->geom.polygon.num_vertices -= 1;
+  p->is_aabb_dirty = true;
+
+  return true;
 }
 
 // ============================================================================
@@ -353,19 +342,37 @@ void primitive_update_aabb(Primitive* p) {
       break;
 
     case PRIM_RECTANGLE:
-      /* TODO: Compute AABB for Rectangle
-       */
+      p->aabb.min.x = p->geom.rectangle.top_left.x;
+      p->aabb.max.x = p->geom.rectangle.top_left.x + p->geom.rectangle.width;
+      p->aabb.min.y = p->geom.rectangle.top_left.y;
+      p->aabb.max.y = p->geom.rectangle.top_left.y + p->geom.rectangle.height;
       break;
 
     case PRIM_SEGMENT:
-      /* TODO: Compute AABB for Segment
-       */
+      p->aabb.min.x = (p->geom.segment.p1.x < p->geom.segment.p2.x) ? p->geom.segment.p1.x : p->geom.segment.p2.x;
+      p->aabb.max.x = (p->geom.segment.p1.x > p->geom.segment.p2.x) ? p->geom.segment.p1.x : p->geom.segment.p2.x;
+      p->aabb.min.y = (p->geom.segment.p1.y < p->geom.segment.p2.y) ? p->geom.segment.p1.y : p->geom.segment.p2.y;
+      p->aabb.max.y = (p->geom.segment.p1.y > p->geom.segment.p2.y) ? p->geom.segment.p1.y : p->geom.segment.p2.y;
       break;
 
     case PRIM_POLYGON:
-      /* TODO: Compute AABB for Polygon
-       * Iterate vertices array to find min/max coordinates
-       */
+      if (p->geom.polygon.num_vertices == 0) {
+        break;
+      }
+
+      p->aabb.min.x = p->geom.polygon.vertices[0].x;
+      p->aabb.max.x = p->geom.polygon.vertices[0].x;
+      p->aabb.min.y = p->geom.polygon.vertices[0].y;
+      p->aabb.max.y = p->geom.polygon.vertices[0].y;
+
+      for(size_t i = 0; i < p->geom.polygon.num_vertices; i++) {
+        Point point = p->geom.polygon.vertices[i];
+
+        if (point.x < p->aabb.min.x) p->aabb.min.x = point.x;
+        if (point.x > p->aabb.max.x) p->aabb.max.x = point.x;
+        if (point.y < p->aabb.min.y) p->aabb.min.y = point.y;
+        if (point.y > p->aabb.max.y) p->aabb.max.y = point.y;
+      }
       break;
   }
 
@@ -377,16 +384,39 @@ void primitive_translate(Primitive* p, double dx, double dy) {
     return;
   }
 
-  /* TODO: Student Implementation
-   * Translate geometry based on p->type:
+  /* Translate geometry based on p->type:
    * - PRIM_CIRCLE: translate the center
    * - PRIM_RECTANGLE: translate top-left vertex
    * - PRIM_SEGMENT: translate both endpoints
    * - PRIM_POLYGON: translate each vertex
    * Set p->is_aabb_dirty = true
    */
-  (void)dx;
-  (void)dy;
+
+  switch (p->type)
+  {
+    case PRIM_CIRCLE:
+      p->geom.circle.center.x += dx;
+      p->geom.circle.center.y += dy;
+      break;
+    case PRIM_RECTANGLE:
+      p->geom.rectangle.top_left.x += dx;
+      p->geom.rectangle.top_left.y += dy;
+      break;
+    case PRIM_SEGMENT:
+      p->geom.segment.p1.x += dx;
+      p->geom.segment.p2.x += dx;
+      p->geom.segment.p1.y += dy;
+      p->geom.segment.p2.y += dy;
+      break;
+    case PRIM_POLYGON:
+      for(size_t i = 0; i < p->geom.polygon.num_vertices; i++) {
+        p->geom.polygon.vertices[i].x += dx;
+        p->geom.polygon.vertices[i].y += dy;
+      }
+      break;
+  }
+
+  p->is_aabb_dirty = true;
 }
 
 void primitive_scale(Primitive* p, double factor) {
@@ -394,15 +424,55 @@ void primitive_scale(Primitive* p, double factor) {
     return;
   }
 
-  /* TODO: Student Implementation
-   * Scale geometry based on p->type:
+  /* Scale geometry based on p->type:
    * - PRIM_CIRCLE: radius *= factor
    * - PRIM_RECTANGLE: width *= factor, height *= factor
    * - PRIM_SEGMENT: scale endpoints relative to midpoint
    * - PRIM_POLYGON: scale vertices relative to polygon bounding box center
    * Set p->is_aabb_dirty = true
    */
-  (void)factor;
+
+
+  switch (p->type)
+  {
+    case PRIM_CIRCLE:
+      p->geom.circle.radius *= factor;
+      break;
+    case PRIM_RECTANGLE:
+      p->geom.rectangle.width *= factor;
+      p->geom.rectangle.height *= factor;
+      break;
+    case PRIM_SEGMENT: {
+      double x_midpoint = (p->geom.segment.p1.x + p->geom.segment.p2.x) / 2;
+      double y_midpoint = (p->geom.segment.p1.y + p->geom.segment.p2.y) / 2;
+
+      p->geom.segment.p1.x = x_midpoint + (p->geom.segment.p1.x - x_midpoint) * factor;
+      p->geom.segment.p1.y = y_midpoint + (p->geom.segment.p1.y - y_midpoint) * factor;
+
+      p->geom.segment.p2.x = x_midpoint + (p->geom.segment.p2.x - x_midpoint) * factor;
+      p->geom.segment.p2.y = y_midpoint + (p->geom.segment.p2.y - y_midpoint) * factor;
+
+      break;
+    }
+    case PRIM_POLYGON: {
+      if (p->geom.polygon.num_vertices == 0) {
+        break;
+      }
+
+      primitive_update_aabb(p);
+
+      double x_midpoint = (p->aabb.min.x + p->aabb.max.x) / 2;
+      double y_midpoint = (p->aabb.min.y + p->aabb.max.y) / 2;
+
+      for (size_t i = 0; i < p->geom.polygon.num_vertices; i++) {
+        p->geom.polygon.vertices[i].x = x_midpoint + (p->geom.polygon.vertices[i].x - x_midpoint) * factor;
+        p->geom.polygon.vertices[i].y = y_midpoint + (p->geom.polygon.vertices[i].y - y_midpoint) * factor; 
+      }
+      break;
+    }
+  }
+  
+  p->is_aabb_dirty = true;
 }
 
 bool primitive_contains_point(const Primitive* p, Point pt) {
@@ -417,19 +487,19 @@ bool primitive_contains_point(const Primitive* p, Point pt) {
                                         p->geom.circle.radius, pt);
 
     case PRIM_RECTANGLE:
-      /* TODO: Does rectangle contain point?
+      /* Does rectangle contain point?
        */
-      return false;
+      return math_rect_contains_point(p->geom.rectangle.top_left, p->geom.rectangle.width, p->geom.rectangle.height, pt);
 
     case PRIM_SEGMENT:
-      /* TODO: Does segment contain point?
+      /* Does segment contain point?
        */
-      return false;
+      return math_segment_contains_point(p->geom.segment.p1, p->geom.segment.p2, 1.0, pt);
 
     case PRIM_POLYGON:
-      /* TODO: Does polygon contain point?
+      /* Does polygon contain point?
        */
-      return false;
+      return math_polygon_contains_point(p->geom.polygon.vertices, p->geom.polygon.num_vertices, pt);
   }
 
   return false;

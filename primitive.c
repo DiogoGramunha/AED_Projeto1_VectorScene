@@ -9,8 +9,8 @@
 /**
  * STUDENT NAME: Diogo Miguel Gramunha Da Silva
  * STUDENT NUMBER: 120763
- * STUDENT NAME: 
- * STUDENT NUMBER:
+ * STUDENT NAME: Tomás Correia de Sá dos Santos Alves
+ * STUDENT NUMBER: 108154
  */
 
 #include "primitive.h"
@@ -201,6 +201,7 @@ Primitive* primitive_create_circle(int id, Point center, double radius,
 Primitive* primitive_create_rectangle(int id, Point top_left, double width,
                                       double height, Color color, double alpha,
                                       int z_index) {
+  
   if (width <= 0.0 || height <= 0.0 || alpha < 0.0 || alpha > 1.0) {
     return NULL;
   }
@@ -220,8 +221,10 @@ Primitive* primitive_create_rectangle(int id, Point top_left, double width,
   return p;
 }
 
+
 Primitive* primitive_create_segment(int id, Point p1, Point p2, Color color,
                                     double alpha, int z_index) {
+
   if (alpha < 0.0 || alpha > 1.0) {
     return NULL;
   }
@@ -242,6 +245,7 @@ Primitive* primitive_create_segment(int id, Point p1, Point p2, Color color,
 
 Primitive* primitive_create_polygon(int id, Color color, double alpha,
                                     int z_index) {
+
   if (alpha < 0.0 || alpha > 1.0) {
     return NULL;
   }
@@ -258,6 +262,7 @@ Primitive* primitive_create_polygon(int id, Color color, double alpha,
 }
 
 void primitive_destroy(Primitive* p) {
+
   if (p == NULL) {
     return;
   }

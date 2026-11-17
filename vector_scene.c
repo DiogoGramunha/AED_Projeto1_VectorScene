@@ -9,8 +9,8 @@
 /**
  * STUDENT NAME: Diogo Miguel Gramunha Da Silva
  * STUDENT NUMBER: 120763
- * STUDENT NAME:
- * STUDENT NUMBER:
+ * STUDENT NAME: Tomás Correia de Sá dos Santos Alves
+ * STUDENT NUMBER: 108154
  */
 
 #include "vector_scene.h"
@@ -145,10 +145,15 @@ void vector_scene_destroy(VectorScene* scene) {
     return;
   }
 
-  /* TODO: Student Implementation
-   * 1. Destroy each scene primitive.
-   * 2. Free all allocated memory.
-   */
+  // 1. Destroy each scene primitive.
+
+  for (size_t i = 0; i < scene->count; i++) {
+    primitive_destroy(scene->primitives[i]);
+  }
+
+  // 2. Free all allocated memory.
+  free(scene->primitives);
+  free(scene);
 }
 
 // ============================================================================
@@ -160,18 +165,42 @@ int vector_scene_add_primitive(VectorScene* scene, Primitive* p) {
     return -1;
   }
 
-  /* TODO: Student Implementation
-   * 1. Check if scene->count == scene->capacity.
-   * 2. If full, expand capacity using realloc.
-   * 3. Auto-assign p->id if p->id < 0 using scene->next_auto_id++.
-   * 4. Append p to primitives array.
-   * 5. Call primitive_update_aabb(p).
-   * 6. Return assigned primitive ID.
-   * NOTE: Scene TAKES OWNERSHIP of pointer p (it no longer belongs to the
-   * client).
-   */
-  return -1;
+  // TODO: Student Implementation
+  // 1. Check if scene->count == scene->capacity.
+  // 2. If full, expand capacity using realloc.
+
+  if (scene->count == scene->capacity) {
+    size_t new_capacity = scene->capacity * 2;
+    //ponteiro temporario; se falhar scene->primitives nao e alterado
+    Primitive** tmp =realloc(scene->primitives, new_capacity * sizeof(Primitive*));
+    if (tmp == NULL) {
+      return -1; // Allocation failed
+    }
+    scene->primitives = tmp;
+    scene->capacity = new_capacity;
+  }
+
+  // 3. Auto-assign p->id if p->id < 0 using scene->next_auto_id++.
+  if (p->id < 0) {
+    p->id = scene->next_auto_id++;
+  } else if (p->id >= scene->next_auto_id) {
+
+  //ID Explicito: evita colisoes futuras (gerador automatico fica acima do maior ID usado)  
+    scene->next_auto_id = p->id + 1;
+  }
+
+  // 4. Append p to primitives array.
+  scene->primitives[scene->count++] = p;
+
+  // 5. Call primitive_update_aabb(p).
+  primitive_update_aabb(p);
+
+  // 6. Return assigned primitive ID.
+  return p->id;
 }
+  // NOTE: Scene TAKES OWNERSHIP of pointer p (it no longer belongs to the
+  // client).
+
 
 bool vector_scene_remove_primitive(VectorScene* scene, int id) {
   if (!scene || id < 0) {
@@ -194,24 +223,43 @@ bool vector_scene_translate_primitive(VectorScene* scene, int id, double dx,
     return false;
   }
 
-  /* TODO: Student Implementation
-   */
+/* TODO: Student Implementation
   (void)id;
   (void)dx;
   (void)dy;
   return false;
+  */
+
+  Primitive* p = vector_scene_get_primitive_by_id(scene, id);
+  if (p == NULL) {
+    return false;
+  }
+
+  primitive_translate(p, dx, dy);
+  return true;
 }
+
 
 bool vector_scene_set_z_index(VectorScene* scene, int id, int new_z_index) {
   if (!scene) {
     return false;
   }
 
-  /* TODO: Student Implementation
-   */
+/* TODO: Student Implementation
+   
   (void)id;
   (void)new_z_index;
   return false;
+}
+*/
+
+Primitive* p = vector_scene_get_primitive_by_id(scene, id);
+  if (p == NULL) {
+    return false;
+  }
+
+  p->z_index = new_z_index;
+  return true;
 }
 
 // ============================================================================

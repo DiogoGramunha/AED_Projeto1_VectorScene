@@ -9,8 +9,8 @@
 /**
  * STUDENT NAME: Diogo Miguel Gramunha Da Silva
  * STUDENT NUMBER: 120763
- * STUDENT NAME: 
- * STUDENT NUMBER:
+ * STUDENT NAME: Tomás Correia de Sá dos Santos Alves
+ * STUDENT NUMBER: 108154
  */
 
 #include "primitive.h"
@@ -201,8 +201,7 @@ Primitive* primitive_create_circle(int id, Point center, double radius,
 Primitive* primitive_create_rectangle(int id, Point top_left, double width,
                                       double height, Color color, double alpha,
                                       int z_index) {
-  /* TODO: Student Implementation
-   */
+  /* TODO: Student Implementation 
   (void)id;
   (void)top_left;
   (void)width;
@@ -212,11 +211,35 @@ Primitive* primitive_create_rectangle(int id, Point top_left, double width,
   (void)z_index;
   return NULL;
 }
+*/
+
+//dimensoes estritamente positivas
+  if (width <= 0.0 || height <= 0.0 || alpha_is_valid(alpha) == NULL) {
+    return NULL;
+  }
+
+//aloca estrutra base e preenche id, cor, alpha etc.
+  Primitive* p = primitive_allocate_common(id, PRIM_RECTANGLE, color, alpha, z_index);
+  if (p == NULL) {
+    return NULL;
+  }
+
+  
+  p->geom.rectangle.top_left = top_left;
+  p->geom.rectangle.width = width;
+  p->geom.rectangle.height = height;
+
+
+  // Automatically calculate initial AABB
+  primitive_update_aabb(p);
+
+  return p;
+}
 
 Primitive* primitive_create_segment(int id, Point p1, Point p2, Color color,
                                     double alpha, int z_index) {
   /* TODO: Student Implementation
-   */
+  
   (void)id;
   (void)p1;
   (void)p2;
@@ -225,22 +248,71 @@ Primitive* primitive_create_segment(int id, Point p1, Point p2, Color color,
   (void)z_index;
   return NULL;
 }
+*/
+
+  if (alpha_is_valid(alpha) == NULL) {
+    return NULL;
+  }
+
+  Primitive* p = primitive_allocate_common(id, PRIM_SEGMENT, color, alpha, z_index);
+  if (p == NULL) {
+    return NULL;
+  }
+
+  p->geom.segment.p1 = p1;
+  p->geom.segment.p2 = p2;
+
+  // Automatically calculate initial AABB
+  primitive_update_aabb(p);
+
+  return p;
+}
 
 Primitive* primitive_create_polygon(int id, Color color, double alpha,
                                     int z_index) {
   /* TODO: Student Implementation
-   */
   (void)id;
   (void)color;
   (void)alpha;
   (void)z_index;
   return NULL;
 }
+*/
+  if (alpha_is_valid(alpha) == NULL) {
+    return NULL;
+  }
+
+  Primitive* p = primitive_allocate_common(id, PRIM_POLYGON, color, alpha, z_index);
+  if (p == NULL) {
+    return NULL;
+  }
+
+  p->geom.polygon.vertices = NULL;
+  p->geom.polygon.num_vertices = 0;
+
+  // Automatically calculate initial AABB
+  primitive_update_aabb(p);
+
+  return p;
+}
 
 void primitive_destroy(Primitive* p) {
   /* TODO: Student Implementation
-   */
   (void)p;
+}
+  */
+
+  if (p == NULL) {
+    return;
+  }
+
+  if (p->type == PRIM_POLYGON) {
+    free(p->geom.polygon.vertices);
+    p->geom.polygon.vertices = NULL;
+    p->geom.polygon.num_vertices = 0;
+  }
+
+  free(p);
 }
 
 // ============================================================================

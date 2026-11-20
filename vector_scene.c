@@ -171,7 +171,7 @@ void vector_scene_destroy(VectorScene* scene) {
     return;
   }
 
-  // 1. Destroy each scene primitive.
+  // 1. Destroi cada scene primitive.
 
   for (size_t i = 0; i < scene->count; i++) {
     primitive_destroy(scene->primitives[i]);
@@ -200,13 +200,13 @@ int vector_scene_add_primitive(VectorScene* scene, Primitive* p) {
     //ponteiro temporario; se falhar scene->primitives nao e alterado
     Primitive** tmp =realloc(scene->primitives, new_capacity * sizeof(Primitive*));
     if (tmp == NULL) {
-      return -1; // Allocation failed
+      return -1; // Allocação falhada
     }
     scene->primitives = tmp;
     scene->capacity = new_capacity;
   }
 
-  // 3. Auto-assign p->id if p->id < 0 using scene->next_auto_id++.
+  // 3. Auto-assign p->id se p->id < 0 usando scene->next_auto_id++.
   if (p->id < 0) {
     p->id = scene->next_auto_id++;
   } else if (p->id >= scene->next_auto_id) {
@@ -215,13 +215,13 @@ int vector_scene_add_primitive(VectorScene* scene, Primitive* p) {
     scene->next_auto_id = p->id + 1;
   }
 
-  // 4. Append p to primitives array.
+  // 4. Append p ao array primitives 
   scene->primitives[scene->count++] = p;
 
-  // 5. Call primitive_update_aabb(p).
+  // 5. Chama primitive_update_aabb(p).
   primitive_update_aabb(p);
 
-  // 6. Return assigned primitive ID.
+  // 6. Return primitive ID.
   return p->id;
 }
   // NOTE: Scene TAKES OWNERSHIP of pointer p (it no longer belongs to the
@@ -595,7 +595,7 @@ size_t num_pixels = (size_t)scene->width * (size_t)scene->height;
     return false;
   }
 
-  // 1. Preencher o canvas com a cor de fundo (bg_color)
+  // 1. Preencher com a cor de fundo (bg_color)
   for (size_t i = 0; i < num_pixels; i++) {
     pixel_buffer[i * 3 + 0] = scene->bg_color.r;
     pixel_buffer[i * 3 + 1] = scene->bg_color.g;
@@ -624,7 +624,7 @@ size_t num_pixels = (size_t)scene->width * (size_t)scene->height;
     }
   }
 
-  // 3. Rasterizar cada primitiva dentro da sua AABB recortada ao canvas
+  // 3. Rastrear cada primitiva dentro da sua AABB recortada ao canvas
   for (size_t i = 0; i < scene->count; i++) {
     Primitive* p = sorted_prims[i];
     if (p == NULL || p->alpha <= 0.0) {

@@ -135,9 +135,35 @@ VectorScene* vector_scene_create(int width, int height, Color bg_color) {
   /* TODO: Student Implementation
    * 1. Allocate the VectorScene data structure.
    * 2. Set capacity = INITIAL_SCENE_CAPACITY.
-   */
+   
   (void)bg_color;
   return NULL;
+}
+*/
+
+if (width <= 0 || height <= 0) {
+    return NULL;
+  }
+
+  VectorScene* scene = malloc(sizeof(VectorScene));
+  if (scene == NULL) {
+    return NULL;
+  }
+
+  scene->primitives = malloc(INITIAL_SCENE_CAPACITY * sizeof(Primitive*));
+  if (scene->primitives == NULL) {
+    free(scene);
+    return NULL;
+  }
+
+  scene->width = width;
+  scene->height = height;
+  scene->bg_color = bg_color;
+  scene->count = 0;
+  scene->capacity = INITIAL_SCENE_CAPACITY;
+  scene->next_auto_id = 0;
+
+  return scene;
 }
 
 void vector_scene_destroy(VectorScene* scene) {
@@ -210,6 +236,21 @@ bool vector_scene_remove_primitive(VectorScene* scene, int id) {
   /* TODO: Student Implementation
    * 1. Do not forget to shif left remaining primitives, if needed.
    */
+
+for (size_t i = 0; i < scene->count; i++) {
+    if (scene->primitives[i] != NULL && scene->primitives[i]->id == id) {
+      primitive_destroy(scene->primitives[i]);
+
+      for (size_t j = i; j < scene->count - 1; j++) {
+        scene->primitives[j] = scene->primitives[j + 1];
+      }
+
+      scene->count--;
+      scene->primitives[scene->count] = NULL;
+      return true;
+    }
+  }
+
   return false;
 }
 
@@ -287,11 +328,38 @@ static void insertion_sort_by_z(Primitive** arr, size_t count,
   // - Shift elements right and increment stats->swaps for every move.
   // - Insert key in its correct sorted position.
 
-  (void)arr;
+/*  (void)arr;
   (void)count;
   (void)stats;
 }
+  */
 
+    if (arr == NULL || count < 2) {
+      return;
+    }
+
+    for (size_t i = 1; i < count; i++) {
+        Primitive* key = arr[i];
+        size_t j = i;
+
+        while (j > 0) {
+          if (stats) stats->comparisons++;
+          if (arr[j - 1]->z_index > key->z_index) {
+              arr[j] = arr[j - 1];
+              if (stats) stats->swaps++;
+              j--;
+          } else {
+              break;
+          }
+    }
+        if (j != i) {
+          arr[j] = key;
+          if (stats) {
+            stats->swaps++;
+        }
+      }
+    }
+  }
 /**
  * @brief Merges two sorted subarrays of primitive pointers by z_index.
  *
@@ -313,13 +381,54 @@ static void merge_by_z(Primitive** arr, Primitive** temp_arr, size_t left,
   // - Compare z_index of primitives and increment stats->comparisons.
   // - Increment stats->swaps when copying elements to temp_arr and back to arr.
   // - Copy merged elements back from temp_arr to arr[left..right].
-
+/*
   (void)arr;
   (void)temp_arr;
   (void)left;
   (void)mid;
   (void)right;
   (void)stats;
+}
+*/
+
+size_t i = left;
+  size_t j = mid + 1;
+  size_t k = left;
+
+  while (i <= mid && j <= right) {
+    if (stats) {
+      stats->comparisons++;
+    }
+    if (arr[i]->z_index <= arr[j]->z_index) {
+      temp_arr[k++] = arr[i++];
+    } else {
+      temp_arr[k++] = arr[j++];
+    }
+    if (stats) {
+      stats->swaps++;
+    }
+  }
+
+  while (i <= mid) {
+    temp_arr[k++] = arr[i++];
+    if (stats) {
+      stats->swaps++;
+    }
+  }
+
+  while (j <= right) {
+    temp_arr[k++] = arr[j++];
+    if (stats) {
+      stats->swaps++;
+    }
+  }
+
+  for (size_t idx = left; idx <= right; idx++) {
+    arr[idx] = temp_arr[idx];
+    if (stats) {
+      stats->swaps++;
+    }
+  }
 }
 
 /**
@@ -342,11 +451,23 @@ static void merge_sort_by_z(Primitive** arr, Primitive** temp_arr, size_t left,
   // - Recursively call merge_sort_by_z for [left..mid] and [mid+1..right].
   // - Call merge_by_z to merge the two sorted halves.
 
+/*
   (void)arr;
   (void)temp_arr;
   (void)left;
   (void)right;
   (void)stats;
+}
+*/
+
+if (left >= right) {
+    return;
+  }
+
+  size_t mid = left + (right - left) / 2;
+  merge_sort_by_z(arr, temp_arr, left, mid, stats);
+  merge_sort_by_z(arr, temp_arr, mid + 1, right, stats);
+  merge_by_z(arr, temp_arr, left, mid, right, stats);
 }
 
 void vector_scene_sort_by_z(VectorScene* scene, bool use_fast_sort,
@@ -358,10 +479,31 @@ void vector_scene_sort_by_z(VectorScene* scene, bool use_fast_sort,
    * If use_fast_sort is false: execute O(N^2) sort (Insertion Sort).
    * If use_fast_sort is true: execute O(N log N) sort (MergeSort).
    * Increment stats->comparisons and stats->swaps on every check/swap!
-   */
-
+   * 
   (void)use_fast_sort;
   (void)stats;
+}
+*/
+
+if (stats) {
+    stats->comparisons = 0;
+    stats->swaps = 0;
+  }
+
+  if (scene == NULL || scene->count < 2) {
+    return;
+  }
+
+  if (use_fast_sort) {
+    Primitive** temp_arr = malloc(scene->count * sizeof(Primitive*));
+    if (temp_arr == NULL) {
+      return;
+    }
+    merge_sort_by_z(scene->primitives, temp_arr, 0, scene->count - 1, stats);
+    free(temp_arr);
+  } else {
+    insertion_sort_by_z(scene->primitives, scene->count, stats);
+  }
 }
 
 Primitive* vector_scene_pick_top_primitive(const VectorScene* scene, Point pt,
@@ -376,21 +518,57 @@ Primitive* vector_scene_pick_top_primitive(const VectorScene* scene, Point pt,
    * Phase 1 (Broad-phase): AABB check (increment stats->aabb_tests++).
    * Phase 2 (Narrow-phase): Exact check primitive_contains_point
    * (increment stats->exact_tests++). Return topmost matching primitive.
-   */
+
   (void)pt;
   (void)stats;
+  return NULL;
+}
+*/
+
+if (stats) {
+    stats->aabb_tests = 0;
+    stats->exact_tests = 0;
+  }
+
+  if (scene == NULL || scene->count == 0) {
+    return NULL;
+  }
+
+  // Percorre do topo (maior z_index) para o fundo (menor z_index)
+  for (size_t i = scene->count; i > 0; i--) {
+    Primitive* p = scene->primitives[i - 1];
+    if (p == NULL) {
+      continue;
+    }
+
+    if (is_opt) {
+      // Fase 1 -> teste rápido na AABB
+      BoundingBox aabb = primitive_get_aabb(p);
+      if (stats) {
+        stats->aabb_tests++;
+      }
+
+      if (pt.x < aabb.min.x || pt.x > aabb.max.x ||
+          pt.y < aabb.min.y || pt.y > aabb.max.y) {
+        continue;
+      }
+    }
+
+    // Fase 2 -> teste geométrico exato
+    if (stats) {
+      stats->exact_tests++;
+    }
+    if (primitive_contains_point(p, pt)) {
+      return p;
+    }
+  }
+
   return NULL;
 }
 
 // ============================================================================
 // RENDERING / RASTERIZATION (STUDENTS MUST COMPLETE)
 // ============================================================================
-
-bool vector_scene_render(const VectorScene* scene,
-                         const char* output_filename) {
-  if (!scene || !output_filename) {
-    return false;
-  }
 
   /* TODO: Student Implementation & Benchmark Study
    * 1. Allocate pixel buffer (width * height * 3) and fill bg_color.
@@ -405,9 +583,104 @@ bool vector_scene_render(const VectorScene* scene,
    * 4. Call save_ppm_image(output_filename, width, height, pixel_buffer).
    * 5. Free buffers and return true.
    */
-  return false;
-}
+bool vector_scene_render(const VectorScene* scene,
+                         const char* output_filename) {
+  if (!scene || !output_filename) {
+    return false;
+  }
 
+size_t num_pixels = (size_t)scene->width * (size_t)scene->height;
+  uint8_t* pixel_buffer = malloc(num_pixels * 3 * sizeof(uint8_t));
+  if (pixel_buffer == NULL) {
+    return false;
+  }
+
+  // 1. Preencher o canvas com a cor de fundo (bg_color)
+  for (size_t i = 0; i < num_pixels; i++) {
+    pixel_buffer[i * 3 + 0] = scene->bg_color.r;
+    pixel_buffer[i * 3 + 1] = scene->bg_color.g;
+    pixel_buffer[i * 3 + 2] = scene->bg_color.b;
+  }
+
+  // 2. Ordenar cópia dos ponteiros por z_index crescente (Algoritmo do Pintor)
+  Primitive** sorted_prims = NULL;
+  if (scene->count > 0) {
+    sorted_prims = malloc(scene->count * sizeof(Primitive*));
+    if (sorted_prims == NULL) {
+      free(pixel_buffer);
+      return false;
+    }
+    memcpy(sorted_prims, scene->primitives, scene->count * sizeof(Primitive*));
+
+    if (scene->count > 1) {
+      Primitive** temp_arr = malloc(scene->count * sizeof(Primitive*));
+      if (temp_arr == NULL) {
+        free(sorted_prims);
+        free(pixel_buffer);
+        return false;
+      }
+      merge_sort_by_z(sorted_prims, temp_arr, 0, scene->count - 1, NULL);
+      free(temp_arr);
+    }
+  }
+
+  // 3. Rasterizar cada primitiva dentro da sua AABB recortada ao canvas
+  for (size_t i = 0; i < scene->count; i++) {
+    Primitive* p = sorted_prims[i];
+    if (p == NULL || p->alpha <= 0.0) {
+      continue;
+    }
+
+    primitive_update_aabb(p);
+    BoundingBox aabb = primitive_get_aabb(p);
+
+    int x_min = (int)floor(aabb.min.x);
+    int y_min = (int)floor(aabb.min.y);
+    int x_max = (int)ceil(aabb.max.x);
+    int y_max = (int)ceil(aabb.max.y);
+
+    if (x_min < 0) x_min = 0;
+    if (y_min < 0) y_min = 0;
+    if (x_max >= scene->width) x_max = scene->width - 1;
+    if (y_max >= scene->height) y_max = scene->height - 1;
+
+    double alpha = p->alpha;
+    double inv_alpha = 1.0 - alpha;
+
+    for (int y = y_min; y <= y_max; y++) {
+      for (int x = x_min; x <= x_max; x++) {
+        Point pixel_center = {(double)x + 0.5, (double)y + 0.5};
+
+        if (primitive_contains_point(p, pixel_center)) {
+          size_t idx = ((size_t)y * (size_t)scene->width + (size_t)x) * 3;
+
+          if (alpha >= 1.0) {
+            pixel_buffer[idx + 0] = p->color.r;
+            pixel_buffer[idx + 1] = p->color.g;
+            pixel_buffer[idx + 2] = p->color.b;
+          } else {
+            double r = alpha * p->color.r + inv_alpha * pixel_buffer[idx + 0];
+            double g = alpha * p->color.g + inv_alpha * pixel_buffer[idx + 1];
+            double b = alpha * p->color.b + inv_alpha * pixel_buffer[idx + 2];
+
+            pixel_buffer[idx + 0] = (uint8_t)(r + 0.5);
+            pixel_buffer[idx + 1] = (uint8_t)(g + 0.5);
+            pixel_buffer[idx + 2] = (uint8_t)(b + 0.5);
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Gravar imagem PPM e libertar memória auxiliar
+  bool saved =
+      save_ppm_image(output_filename, scene->width, scene->height, pixel_buffer);
+
+  free(sorted_prims);
+  free(pixel_buffer);
+
+  return saved;
+}
 // ============================================================================
 // FILE INPUT / OUTPUT (PROVIDED TO STUDENTS)
 // ============================================================================
